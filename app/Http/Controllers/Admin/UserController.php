@@ -27,7 +27,9 @@ class UserController extends Controller
             'name'     => 'required|string|max:255',
             'email'    => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:6',
-            'role'     => ['required', Rule::in(['admin', 'konten'])],
+            // OCP: menggunakan User::ROLES — tambah role baru cukup di model User,
+            // tidak perlu mengubah controller ini.
+            'role'     => ['required', Rule::in(User::ROLES)],
         ], [
             'email.unique' => 'Email ini sudah digunakan oleh akun lain.',
         ]);
@@ -52,10 +54,10 @@ class UserController extends Controller
         $rules = [
             'name'  => 'required|string|max:255',
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
-            'role'  => ['required', Rule::in(['admin', 'konten'])],
+            // OCP: menggunakan User::ROLES — konsisten dengan method store().
+            'role'  => ['required', Rule::in(User::ROLES)],
         ];
 
-        // Jika password diisi, validasi min 6
         if ($request->filled('password')) {
             $rules['password'] = 'string|min:6';
         }

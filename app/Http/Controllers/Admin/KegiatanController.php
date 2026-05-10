@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Contracts\ImageUploadServiceInterface;
 use App\Http\Controllers\Controller;
 use App\Models\Kegiatan;
 use Illuminate\Http\Request;
@@ -9,6 +10,14 @@ use Illuminate\Support\Str;
 
 class KegiatanController extends Controller
 {
+    /**
+     * DIP: Controller bergantung pada abstraksi (interface),
+     * bukan implementasi konkret ImageUploadService.
+     */
+    public function __construct(
+        private ImageUploadServiceInterface $imageUploadService
+    ) {}
+
     public function index()
     {
         $kegiatan = Kegiatan::orderBy('date', 'desc')->paginate(10);
@@ -31,11 +40,14 @@ class KegiatanController extends Controller
             'is_published' => 'nullable',
         ]);
 
-        if ($request->hasFile('photo')) {
-            $validated['photo'] = $request->file('photo')->store('kegiatan', 'public');
+        // SRP + DIP: logika upload foto didelegasikan ke ImageUploadService,
+        // bukan ditulis inline di controller.
+        $photoPath = $this->imageUploadService->uploadFromRequest($request, 'photo', 'kegiatan');
+        if ($photoPath) {
+            $validated['photo'] = $photoPath;
         }
 
-        $validated['slug'] = Str::slug($validated['title']) . '-' . Str::random(5);
+        $validated['slug']         = Str::slug($validated['title']) . '-' . Str::random(5);
         $validated['is_published'] = $request->has('is_published');
 
         Kegiatan::create($validated);
@@ -59,8 +71,11 @@ class KegiatanController extends Controller
             'is_published' => 'nullable',
         ]);
 
-        if ($request->hasFile('photo')) {
-            $validated['photo'] = $request->file('photo')->store('kegiatan', 'public');
+        // SRP + DIP: menggunakan service yang sama seperti store() —
+        // tidak ada duplikasi logika upload.
+        $photoPath = $this->imageUploadService->uploadFromRequest($request, 'photo', 'kegiatan');
+        if ($photoPath) {
+            $validated['photo'] = $photoPath;
         } else {
             unset($validated['photo']);
         }

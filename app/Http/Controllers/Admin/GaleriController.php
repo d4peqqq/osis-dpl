@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Contracts\ImageUploadServiceInterface;
 use App\Http\Controllers\Controller;
 use App\Models\Galeri;
 use App\Models\Kegiatan;
@@ -9,6 +10,14 @@ use Illuminate\Http\Request;
 
 class GaleriController extends Controller
 {
+    /**
+     * DIP: Controller bergantung pada abstraksi (interface),
+     * bukan implementasi konkret ImageUploadService.
+     */
+    public function __construct(
+        private ImageUploadServiceInterface $imageUploadService
+    ) {}
+
     public function index()
     {
         $galeri = Galeri::with('kegiatan')->orderBy('order')->paginate(12);
@@ -31,7 +40,9 @@ class GaleriController extends Controller
             'gender'      => 'required|in:putra,putri',
         ]);
 
-        $validated['photo'] = $request->file('photo')->store('galeri', 'public');
+        // SRP + DIP: logika upload foto didelegasikan ke ImageUploadService.
+        $validated['photo'] = $this->imageUploadService->uploadFromRequest($request, 'photo', 'galeri');
+
         Galeri::create($validated);
 
         return redirect()->route('admin.galeri.index')->with('success', 'Foto berhasil ditambahkan.');

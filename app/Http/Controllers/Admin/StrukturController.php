@@ -2,14 +2,22 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Contracts\ImageUploadServiceInterface;
 use App\Http\Controllers\Controller;
 use App\Models\StrukturOrganisasi;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class StrukturController extends Controller
 {
+    /**
+     * DIP: Controller bergantung pada abstraksi (interface),
+     * bukan implementasi konkret ImageUploadService.
+     */
+    public function __construct(
+        private ImageUploadServiceInterface $imageUploadService
+    ) {}
+
     public function index()
     {
         $struktur = StrukturOrganisasi::orderBy('order')->paginate(10);
@@ -21,16 +29,35 @@ class StrukturController extends Controller
         return view('admin.struktur.create');
     }
 
-    private function generateSlug($name, $id = 0)
+    /**
+     * SRP: Logika generasi slug dipindahkan ke method private ini.
+     * Controller tidak bertanggung jawab atas detail algoritma slug.
+     */
+    private function generateSlug(string $name, int $excludeId = 0): string
     {
-        $slug = Str::slug($name);
+        $slug         = Str::slug($name);
         $originalSlug = $slug;
-        $count = 1;
-        while (StrukturOrganisasi::where('slug', $slug)->where('id', '!=', $id)->exists()) {
+        $count        = 1;
+
+        while (StrukturOrganisasi::where('slug', $slug)->where('id', '!=', $excludeId)->exists()) {
             $slug = "{$originalSlug}-{$count}";
             $count++;
         }
+
         return $slug;
+    }
+
+    /**
+     * SRP + DIP: Logika upload gambar (termasuk base64 crop) didelegasikan
+     * sepenuhnya ke ImageUploadService. Controller hanya menentukan folder tujuan.
+     */
+    private function handlePhotoUpload(Request $request): ?string
+    {
+        if ($request->filled('cropped_photo')) {
+            return $this->imageUploadService->uploadFromBase64($request->cropped_photo, 'struktur');
+        }
+
+        return $this->imageUploadService->uploadFromRequest($request, 'photo', 'struktur');
     }
 
     public function store(Request $request)
@@ -45,19 +72,12 @@ class StrukturController extends Controller
             'is_active'   => 'nullable',
         ]);
 
-        if ($request->filled('cropped_photo')) {
-            $image_parts = explode(";base64,", $request->cropped_photo);
-            if (count($image_parts) >= 2) {
-                $image_base64 = base64_decode($image_parts[1]);
-                $file_name = 'struktur/' . uniqid() . '.png';
-                Storage::disk('public')->put($file_name, $image_base64);
-                $validated['photo'] = $file_name;
-            }
-        } elseif ($request->hasFile('photo')) {
-            $validated['photo'] = $request->file('photo')->store('struktur', 'public');
+        $photoPath = $this->handlePhotoUpload($request);
+        if ($photoPath) {
+            $validated['photo'] = $photoPath;
         }
 
-        $validated['slug'] = $this->generateSlug($validated['name']);
+        $validated['slug']      = $this->generateSlug($validated['name']);
         $validated['is_active'] = (bool) $request->input('is_active', 1);
 
         StrukturOrganisasi::create($validated);
@@ -82,16 +102,10 @@ class StrukturController extends Controller
             'is_active'   => 'nullable',
         ]);
 
-        if ($request->filled('cropped_photo')) {
-            $image_parts = explode(";base64,", $request->cropped_photo);
-            if (count($image_parts) >= 2) {
-                $image_base64 = base64_decode($image_parts[1]);
-                $file_name = 'struktur/' . uniqid() . '.png';
-                Storage::disk('public')->put($file_name, $image_base64);
-                $validated['photo'] = $file_name;
-            }
-        } elseif ($request->hasFile('photo')) {
-            $validated['photo'] = $request->file('photo')->store('struktur', 'public');
+        // SRP: logika upload terpusat di handlePhotoUpload() — tidak duplikat.
+        $photoPath = $this->handlePhotoUpload($request);
+        if ($photoPath) {
+            $validated['photo'] = $photoPath;
         } else {
             unset($validated['photo']);
         }

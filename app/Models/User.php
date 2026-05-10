@@ -13,6 +13,13 @@ class User extends Authenticatable
     use HasFactory, Notifiable;
 
     /**
+     * Daftar role yang valid.
+     * Memenuhi prinsip OCP — tambah role baru cukup di sini,
+     * tidak perlu mengubah controller atau logika validasi.
+     */
+    const ROLES = ['admin', 'konten'];
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var list<string>
