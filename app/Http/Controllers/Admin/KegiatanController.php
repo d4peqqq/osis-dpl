@@ -3,15 +3,25 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreKegiatanRequest;
+use App\Http\Requests\UpdateKegiatanRequest;
 use App\Models\Kegiatan;
-use Illuminate\Http\Request;
-use Illuminate\Support\Str;
+use App\Repositories\KegiatanRepository;
+use App\Services\KegiatanService;
 
 class KegiatanController extends Controller
 {
+    public function __construct(
+        private KegiatanService    $service,
+        private KegiatanRepository $repository,
+    ) {}
+
+    /**
+     * Tampilkan daftar kegiatan dengan pagination.
+     */
     public function index()
     {
-        $kegiatan = Kegiatan::orderBy('date', 'desc')->paginate(10);
+        $kegiatan = $this->repository->getAllPaginated(perPage: 10);
         return view('admin.kegiatan.index', compact('kegiatan'));
     }
 
@@ -20,60 +30,52 @@ class KegiatanController extends Controller
         return view('admin.kegiatan.create');
     }
 
-    public function store(Request $request)
+    public function store(StoreKegiatanRequest $request)
     {
-        $validated = $request->validate([
-            'title'        => 'required|string|max:255',
-            'body'         => 'required|string',
-            'date'         => 'required|date',
-            'gender'       => 'required|in:putra,putri',
-            'photo'        => 'nullable|image|mimes:jpg,jpeg,png,webp|max:10240',
-            'is_published' => 'nullable',
-        ]);
+        // $request->validated() sudah bersih dan aman
+        $this->service->create(
+            data:  $request->validated(),
+            photo: $request->file('photo'),
+        );
 
-        if ($request->hasFile('photo')) {
-            $validated['photo'] = $request->file('photo')->store('kegiatan', 'public');
-        }
-
-        $validated['slug'] = Str::slug($validated['title']) . '-' . Str::random(5);
-        $validated['is_published'] = $request->has('is_published');
-
-        Kegiatan::create($validated);
-
-        return redirect()->route('admin.kegiatan.index')->with('success', 'Kegiatan berhasil ditambahkan.');
+        return redirect()
+            ->route('admin.kegiatan.index')
+            ->with('success', 'Kegiatan berhasil ditambahkan.');
     }
 
+    /**
+     * Tampilkan form edit kegiatan.
+     */
     public function edit(Kegiatan $kegiatan)
     {
         return view('admin.kegiatan.edit', compact('kegiatan'));
     }
 
-    public function update(Request $request, Kegiatan $kegiatan)
+    public function update(UpdateKegiatanRequest $request, Kegiatan $kegiatan)
     {
-        $validated = $request->validate([
-            'title'        => 'required|string|max:255',
-            'body'         => 'required|string',
-            'date'         => 'required|date',
-            'gender'       => 'required|in:putra,putri',
-            'photo'        => 'nullable|image|mimes:jpg,jpeg,png,webp|max:10240',
-            'is_published' => 'nullable',
-        ]);
+        $this->service->update(
+            kegiatan: $kegiatan,
+            data:     $request->validated(),
+            photo:    $request->file('photo'),
+        );
 
-        if ($request->hasFile('photo')) {
-            $validated['photo'] = $request->file('photo')->store('kegiatan', 'public');
-        } else {
-            unset($validated['photo']);
-        }
-
-        $validated['is_published'] = $request->has('is_published');
-        $kegiatan->update($validated);
-
-        return redirect()->route('admin.kegiatan.index')->with('success', 'Kegiatan berhasil diperbarui.');
+        return redirect()
+            ->route('admin.kegiatan.index')
+            ->with('success', 'Kegiatan berhasil diperbarui.');
     }
 
+    /**
+     * Hapus kegiatan.
+     *
+     * Service menangani hapus foto + hapus data.
+     * Controller hanya meneruskan perintah.
+     */
     public function destroy(Kegiatan $kegiatan)
     {
-        $kegiatan->delete();
-        return redirect()->route('admin.kegiatan.index')->with('success', 'Kegiatan berhasil dihapus.');
+        $this->service->delete($kegiatan);
+
+        return redirect()
+            ->route('admin.kegiatan.index')
+            ->with('success', 'Kegiatan berhasil dihapus.');
     }
 }
