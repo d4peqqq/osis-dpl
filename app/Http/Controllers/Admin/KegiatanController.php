@@ -64,12 +64,7 @@ class KegiatanController extends Controller
             ->with('success', 'Kegiatan berhasil diperbarui.');
     }
 
-    /**
-     * Hapus kegiatan.
-     *
-     * Service menangani hapus foto + hapus data.
-     * Controller hanya meneruskan perintah.
-     */
+
     public function destroy(Kegiatan $kegiatan)
     {
         $this->service->delete($kegiatan);

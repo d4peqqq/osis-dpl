@@ -4,11 +4,26 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class StoreKegiatanRequest extends FormRequest
+/**
+ * UpdateKegiatanRequest
+ *
+ * ✅ SOLID - Single Responsibility Principle (SRP):
+ * Hanya menangani validasi untuk UPDATE kegiatan.
+ *
+ * ✅ SOLID - Open-Closed Principle (OCP):
+ * Sebelumnya, rules store() dan update() ditulis DUPLIKAT
+ * di dalam satu controller. Jika ada perubahan validasi,
+ * harus edit 2 tempat sekaligus — rawan lupa.
+ *
+ * Sekarang masing-masing punya file sendiri.
+ * Jika update punya aturan berbeda (misal photo tidak wajib
+ * saat update tapi wajib saat store), tinggal bedakan di sini
+ * tanpa menyentuh StoreKegiatanRequest.
+ */
+class UpdateKegiatanRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        // Hanya admin yang boleh (sudah dijaga middleware di routes)
         return true;
     }
 
@@ -19,6 +34,7 @@ class StoreKegiatanRequest extends FormRequest
             'body'         => 'required|string',
             'date'         => 'required|date',
             'gender'       => 'required|in:putra,putri',
+            // Saat update, foto boleh tidak diisi (pakai foto lama)
             'photo'        => 'nullable|image|mimes:jpg,jpeg,png,webp|max:10240',
             'is_published' => 'nullable|boolean',
         ];
