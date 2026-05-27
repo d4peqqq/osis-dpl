@@ -16,51 +16,51 @@ class KegiatanControllerTest extends TestCase
 
     protected function setUp(): void
     {
-        // SETUP — persiapan sebelum setiap test dijalankan
+        // SETUP 
         parent::setUp();
 
-        // SETUP — buat user admin palsu
+        // SETUP 
         $this->admin = User::factory()->create(['role' => 'admin']);
     }
 
     public function test_destroy_memanggil_service_delete()
     {
-        // SETUP — buat mock KegiatanService
+        // SETUP 
         $mock = $this->createMock(KegiatanService::class);
 
-        // SETUP — ekspektasi: method delete() harus dipanggil tepat 1 kali
+        // SETUP 
         $mock->expects($this->once())
              ->method('delete');
 
-        // SETUP — daftarkan mock ke Laravel container
+        // SETUP 
         $this->app->instance(KegiatanService::class, $mock);
 
-        // SETUP — buat data kegiatan palsu
+        // SETUP 
         $kegiatan = Kegiatan::factory()->create();
 
-        // EXERCISE — kirim HTTP DELETE request sebagai admin
+        // EXERCISE 
         $response = $this->actingAs($this->admin)
                          ->delete(route('admin.kegiatan.destroy', $kegiatan));
 
-        // VERIFY — pastikan redirect ke halaman index setelah hapus
+        // VERIFY 
         $response->assertRedirect(route('admin.kegiatan.index'));
 
-        // TEARDOWN — otomatis oleh RefreshDatabase
+        // TEARDOWN 
     }
 
     public function test_store_memanggil_service_create()
     {
-        // SETUP — buat mock KegiatanService
+        // SETUP 
         $mock = $this->createMock(KegiatanService::class);
 
-        // SETUP — ekspektasi: method create() harus dipanggil tepat 1 kali
+        // SETUP 
         $mock->expects($this->once())
              ->method('create');
 
-        // SETUP — daftarkan mock ke Laravel container
+        // SETUP 
         $this->app->instance(KegiatanService::class, $mock);
 
-        // SETUP — data palsu untuk dikirim ke form (Constructor)
+        // SETUP 
         $data = [
             'title'        => 'Kegiatan OSIS 2025',
             'body'         => 'Deskripsi kegiatan.',
@@ -69,32 +69,32 @@ class KegiatanControllerTest extends TestCase
             'is_published' => true,
         ];
 
-        // EXERCISE — kirim HTTP POST request sebagai admin
+        // EXERCISE 
         $response = $this->actingAs($this->admin)
                          ->post(route('admin.kegiatan.store'), $data);
 
-        // VERIFY — pastikan redirect ke halaman index setelah store
+        // VERIFY 
         $response->assertRedirect(route('admin.kegiatan.index'));
 
-        // TEARDOWN — otomatis oleh RefreshDatabase
+        // TEARDOWN 
     }
 
     public function test_update_memanggil_service_update()
     {
-        // SETUP — buat mock KegiatanService
+        // SETUP 
         $mock = $this->createMock(KegiatanService::class);
 
-        // SETUP — ekspektasi: method update() harus dipanggil tepat 1 kali
+        // SETUP 
         $mock->expects($this->once())
              ->method('update');
 
-        // SETUP — daftarkan mock ke Laravel container
+        // SETUP 
         $this->app->instance(KegiatanService::class, $mock);
 
-        // SETUP — buat data kegiatan palsu (Getters)
+        // SETUP 
         $kegiatan = Kegiatan::factory()->create();
 
-        // SETUP — data baru untuk update (Comparisons)
+        // SETUP 
         $data = [
             'title'        => 'Judul Kegiatan Diupdate',
             'body'         => 'Isi kegiatan yang sudah diubah.',
@@ -103,13 +103,13 @@ class KegiatanControllerTest extends TestCase
             'is_published' => true,
         ];
 
-        // EXERCISE — kirim HTTP PUT request sebagai admin
+        // EXERCISE 
         $response = $this->actingAs($this->admin)
                          ->put(route('admin.kegiatan.update', $kegiatan), $data);
 
-        // VERIFY — pastikan redirect ke halaman index setelah update
+        // VERIFY 
         $response->assertRedirect(route('admin.kegiatan.index'));
 
-        // TEARDOWN — otomatis oleh RefreshDatabase
+        // TEARDOWN
     }
 }
